@@ -20,13 +20,13 @@ jobs:
         uses: NuGet/setup-nuget@v1.0.5
 
       - name: Restore NuGet packages
-        run: nuget restore asptest\asptest.sln
+        run: nuget restore asptest.sln
 
       - name: Build project
-        run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest\asptest.sln
+        run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
       - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="./published/" asptest\asptest.sln
+        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="./published/" asptest.sln
 
       - name: List files in the publish folder
         run: ls -R ./published
