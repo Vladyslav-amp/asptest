@@ -29,13 +29,15 @@ jobs:
         run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=./published asptest.sln
 
       - name: List files in the publish folder
-        run: dir /s /b ./published
+        run: Get-ChildItem -Recurse ./published
+        shell: pwsh
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: ASP-app
           path: './published/**'
+
 
   deploy:
     runs-on: windows-latest
