@@ -38,20 +38,20 @@ jobs:
 
       # Publish to folder "published" (folder created inside the project directory)
       - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=$GITHUB_WORKSPACE/published asptest.sln
+        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=$GITHUB_WORKSPACE/asptest/published asptest.sln
 
       # Debug: List contents of the published folder (if it exists)
       - name: List files after publish
         run: |
           echo "Listing contents of the publish folder after publish:"
-          dir $GITHUB_WORKSPACE/published || echo "No published folder found"
+          dir $GITHUB_WORKSPACE/asptest/published || echo "No published folder found"
 
       # Upload the artifact from the "published" folder
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: ASP-app
-          path: '$GITHUB_WORKSPACE/published/**'
+          path: '$GITHUB_WORKSPACE/asptest/published/**'
 
   deploy:
     runs-on: windows-latest
