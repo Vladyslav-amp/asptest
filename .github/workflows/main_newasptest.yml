@@ -1,4 +1,4 @@
-name: Build and deploy ASP app to Azure Web App - newasptest
+name: Build and Deploy ASP.NET App to Azure Web App
 
 on:
   push:
@@ -7,69 +7,71 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Job 1: Budowanie aplikacji ASP.NET
   build:
     runs-on: windows-latest
-
     steps:
-      # Checkout repository
-      - uses: actions/checkout@v4
+      # Sprawdzamy kod z repozytorium
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Setup MSBuild path
-      - name: Setup MSBuild path
+      # Ustawienie MSBuild do budowania aplikacji
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
 
-      # Setup NuGet
+      # Ustawienie NuGet do przywracania paczek
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
-      # Restore NuGet packages
+      # Przywracamy paczki NuGet
       - name: Restore NuGet packages
         run: nuget restore asptest.sln
 
-      # Build project
-      - name: Build project
+      # Budujemy aplikację
+      - name: Build the app
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
-      # List files in the root directory of the repository (before publishing)
-      - name: List files in the root directory
+      # Tworzymy folder 'published', jeśli nie istnieje
+      - name: Create 'published' folder
         run: |
-          echo "Listing files in the root directory before publishing:"
-          dir $GITHUB_WORKSPACE
+          if (!(Test-Path "D:/a/asptest/asptest/published")) {
+            New-Item -ItemType Directory -Path "D:/a/asptest/asptest/published"
+          }
 
-      # Publish to the "published" folder
-      - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=$GITHUB_WORKSPACE/published asptest.sln
+      # Publikujemy aplikację do folderu 'published'
+      - name: Publish the app
+        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="D:/a/asptest/asptest/published" asptest.sln
 
-      # List files after publish (check if "published" folder exists and contains files)
-      - name: List files after publish
-        run: |
-          echo "Listing contents of the publish folder after publish:"
-          dir $GITHUB_WORKSPACE/published || echo "No published folder found"
+      # Wyświetlamy zawartość folderu 'published' w celu weryfikacji
+      - name: List files in the 'published' folder
+        run: dir "D:/a/asptest/asptest/published" || echo "No files found in 'published'"
 
-      # Upload the artifact from the "published" folder
-      - name: Upload artifact for deployment job
+      # Przesyłamy artefakty (plik opublikowanej aplikacji) do następnego zadania
+      - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: ASP-app
-          path: $GITHUB_WORKSPACE/published/**
+          path: "D:/a/asptest/asptest/published/**"  # Prawidłowa ścieżka z ukośnikami
 
+  # Job 2: Wdrażanie aplikacji na Azure
   deploy:
     runs-on: windows-latest
-    needs: build
+    needs: build  # To zadanie zależy od zadania 'build'
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write  # This is required for requesting the JWT
+      id-token: write  # To wymagane do uzyskania tokena JWT
 
     steps:
-      # Download artifact from build job
+      # Pobieramy artefakt z poprzedniego zadania
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
+          path: "D:/a/asptest/asptest/published"  # Artefakt zostanie pobrany do folderu 'published'
 
-      # Login to Azure
+      # Logowanie do Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -77,11 +79,11 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_907954AC37BA43E2897A4861F921832C }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_03C79C0B94DB460FBDCBE9C45CB4C349 }}
 
-      # Deploy to Azure Web App
+      # Wdrażamy aplikację na Azure Web App
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'newasptest'
           slot-name: 'Production'
-          package: $GITHUB_WORKSPACE/published
+          package: "D:/a/asptest/asptest/published"  # Używamy pobranego artefaktu do wdrożenia
