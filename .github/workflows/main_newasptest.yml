@@ -11,33 +11,42 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      # Checkout repository
       - uses: actions/checkout@v4
 
+      # Setup MSBuild path
       - name: Setup MSBuild path
         uses: microsoft/setup-msbuild@v1.0.2
 
+      # Setup NuGet
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
+      # Restore NuGet packages
       - name: Restore NuGet packages
         run: nuget restore asptest.sln
 
+      # Build project
       - name: Build project
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
-      - name: List files before publishing
+      # Debug: List files before publishing
+      - name: List current directory contents
         run: |
           echo "Listing current directory contents:"
           dir
 
+      # Publish to folder "published" (using GITHUB_WORKSPACE to set path)
       - name: Publish to folder
         run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=$GITHUB_WORKSPACE/published asptest.sln
 
-      - name: List files in the published folder
+      # Debug: List contents of the published folder (if it exists)
+      - name: List files after publish
         run: |
-          echo "Listing contents of published folder:"
-          dir $GITHUB_WORKSPACE/published
+          echo "Listing contents of the publish folder after publish:"
+          dir $GITHUB_WORKSPACE/published || echo "No published folder found"
 
+      # Upload the artifact from the "published" folder
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -51,14 +60,16 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
+      id-token: write  # This is required for requesting the JWT
 
     steps:
+      # Download artifact from build job
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
 
+      # Login to Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -66,6 +77,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_907954AC37BA43E2897A4861F921832C }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_03C79C0B94DB460FBDCBE9C45CB4C349 }}
 
+      # Deploy to Azure Web App
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
