@@ -1,4 +1,4 @@
-name: Build and deploy ASP app to Azure Web App - newasptest
+name: Build and Deploy ASP.NET App to Azure Web App
 
 on:
   push:
@@ -7,59 +7,71 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Job 1: Budowanie aplikacji ASP.NET
   build:
     runs-on: windows-latest
-
     steps:
-      - uses: actions/checkout@v4
+      # Sprawdzamy kod z repozytorium
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup MSBuild path
+      # Ustawienie MSBuild do budowania aplikacji
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
 
+      # Ustawienie NuGet do przywracania paczek
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
+      # Przywracamy paczki NuGet
       - name: Restore NuGet packages
         run: nuget restore asptest.sln
 
-      - name: Build project
+      # Budujemy aplikację
+      - name: Build the app
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
-      - name: Create 'published' folder if not exists
+      # Tworzymy folder 'published', jeśli nie istnieje
+      - name: Create 'published' folder
         run: |
-          if (!(Test-Path "$GITHUB_WORKSPACE/published")) {
-            New-Item -ItemType Directory -Path "$GITHUB_WORKSPACE/published"
+          if (!(Test-Path "$PWD/published")) {
+            New-Item -ItemType Directory -Path "$PWD/published"
           }
 
-      - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="$GITHUB_WORKSPACE/published" asptest.sln
+      # Publikujemy aplikację do folderu 'published'
+      - name: Publish the app
+        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="$PWD/published" asptest.sln
 
-      - name: List files in the published folder
-        run: |
-          echo "Listing contents of the 'published' folder:"
-          dir "$GITHUB_WORKSPACE/published" || echo "No files found"
+      # Wyświetlamy zawartość folderu 'published' w celu weryfikacji
+      - name: List files in the 'published' folder
+        run: dir "$PWD/published" || echo "No files found in 'published'"
 
-      - name: Upload artifact for deployment job
+      # Przesyłamy artefakty (plik opublikowanej aplikacji) do następnego zadania
+      - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: ASP-app
-          path: "$GITHUB_WORKSPACE/published/**"
+          path: "$PWD/published/**"
 
+  # Job 2: Wdrażanie aplikacji na Azure
   deploy:
     runs-on: windows-latest
-    needs: build
+    needs: build  # To zadanie zależy od zadania 'build'
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
+      id-token: write  # To wymagane do uzyskania tokena JWT
 
     steps:
+      # Pobieramy artefakt z poprzedniego zadania
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
+          path: "$PWD/published"  # Artefakt zostanie pobrany do folderu 'published'
 
+      # Logowanie do Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -67,10 +79,11 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
 
+      # Wdrażamy aplikację na Azure Web App
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'newasptest'
           slot-name: 'Production'
-          package: "$GITHUB_WORKSPACE/published"
+          package: "$PWD/published"  # Używamy pobranego artefaktu do wdrożenia
