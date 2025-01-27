@@ -25,30 +25,20 @@ jobs:
       - name: Build project
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
-      # Sprawdź, czy folder 'published' już istnieje
-      - name: List files before publish
-        run: |
-          echo "Listing contents of the working directory before publish:"
-          dir $GITHUB_WORKSPACE
-
-      # Upewnij się, że folder 'published' istnieje
       - name: Create 'published' folder if not exists
         run: |
           if (!(Test-Path "$GITHUB_WORKSPACE/published")) {
             New-Item -ItemType Directory -Path "$GITHUB_WORKSPACE/published"
           }
 
-      # Publikacja aplikacji do folderu 'published'
       - name: Publish to folder
         run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="$GITHUB_WORKSPACE/published" asptest.sln
 
-      # Debugowanie zawartości folderu 'published'
-      - name: Debug publish folder contents
+      - name: List files in the published folder
         run: |
-          echo "Contents of the 'published' folder:"
-          dir "$GITHUB_WORKSPACE/published"
+          echo "Listing contents of the 'published' folder:"
+          dir "$GITHUB_WORKSPACE/published" || echo "No files found"
 
-      # Uploadowanie artefaktu do Azure
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
