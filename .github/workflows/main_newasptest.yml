@@ -36,7 +36,7 @@ jobs:
           echo "Listing current directory contents:"
           dir
 
-      # Publish to folder "published" (using GITHUB_WORKSPACE to set path)
+      # Publish to folder "published" (folder created inside the project directory)
       - name: Publish to folder
         run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=$GITHUB_WORKSPACE/published asptest.sln
 
