@@ -26,10 +26,10 @@ jobs:
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
       - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="./published/" asptest.sln
+        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=./published asptest.sln
 
       - name: List files in the publish folder
-        run: ls -R ./published
+        run: dir /s /b ./published
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -44,7 +44,7 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write # This is required for requesting the JWT
+      id-token: write  # This is required for requesting the JWT
 
     steps:
       - name: Download artifact from build job
