@@ -25,11 +25,18 @@ jobs:
       - name: Build project
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
+      - name: List files before publishing
+        run: |
+          echo "Listing current directory contents:"
+          dir
+
       - name: Publish to folder
         run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=./published asptest.sln
 
       - name: List files in the published folder
-        run: Get-ChildItem -Recurse -Path ./published
+        run: |
+          echo "Listing contents of published folder:"
+          dir ./published
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
