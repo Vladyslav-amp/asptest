@@ -34,24 +34,24 @@ jobs:
       # Tworzymy folder 'published', jeśli nie istnieje
       - name: Create 'published' folder
         run: |
-          if (!(Test-Path "D:\a\asptest\asptest\published")) {
-            New-Item -ItemType Directory -Path "D:\a\asptest\asptest\published"
+          if (!(Test-Path "D:/a/asptest/asptest/published")) {
+            New-Item -ItemType Directory -Path "D:/a/asptest/asptest/published"
           }
 
       # Publikujemy aplikację do folderu 'published'
       - name: Publish the app
-        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="D:\a\asptest\asptest\published" asptest.sln
+        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="D:/a/asptest/asptest/published" asptest.sln
 
       # Wyświetlamy zawartość folderu 'published' w celu weryfikacji
       - name: List files in the 'published' folder
-        run: dir "D:\a\asptest\asptest\published" || echo "No files found in 'published'"
+        run: dir "D:/a/asptest/asptest/published" || echo "No files found in 'published'"
 
       # Przesyłamy artefakty (plik opublikowanej aplikacji) do następnego zadania
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: ASP-app
-          path: "D:\a\asptest\asptest\published/**"
+          path: "D:/a/asptest/asptest/published/**"  # Prawidłowa ścieżka z ukośnikami
 
   # Job 2: Wdrażanie aplikacji na Azure
   deploy:
@@ -69,7 +69,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
-          path: "D:\a\asptest\asptest\published"  # Artefakt zostanie pobrany do folderu 'published'
+          path: "D:/a/asptest/asptest/published"  # Artefakt zostanie pobrany do folderu 'published'
 
       # Logowanie do Azure
       - name: Login to Azure
@@ -86,4 +86,4 @@ jobs:
         with:
           app-name: 'newasptest'
           slot-name: 'Production'
-          package: "D:\a\asptest\asptest\published"  # Używamy pobranego artefaktu do wdrożenia
+          package: "D:/a/asptest/asptest/published"  # Używamy pobranego artefaktu do wdrożenia
