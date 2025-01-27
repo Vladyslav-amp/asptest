@@ -30,11 +30,17 @@ jobs:
       - name: Build project
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
-      # Publish to the "published" folder (will be created if not exists)
+      # List files in the root directory of the repository (before publishing)
+      - name: List files in the root directory
+        run: |
+          echo "Listing files in the root directory before publishing:"
+          dir $GITHUB_WORKSPACE
+
+      # Publish to the "published" folder
       - name: Publish to folder
         run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=$GITHUB_WORKSPACE/published asptest.sln
 
-      # Debug: List contents of the "published" folder (ensure it was created)
+      # List files after publish (check if "published" folder exists and contains files)
       - name: List files after publish
         run: |
           echo "Listing contents of the publish folder after publish:"
