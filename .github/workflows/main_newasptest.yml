@@ -44,7 +44,8 @@ jobs:
       - name: List files after publish
         run: |
           echo "Listing contents of the publish folder after publish:"
-          dir $GITHUB_WORKSPACE/published || echo "No published folder found"
+          # Use proper syntax for PowerShell
+          if (Test-Path "$env:GITHUB_WORKSPACE\\published") { dir "$env:GITHUB_WORKSPACE\\published" } else { echo "No published folder found" }
 
       # Upload the artifact from the "published" folder
       - name: Upload artifact for deployment job
