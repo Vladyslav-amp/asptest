@@ -11,48 +11,49 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # Checkout repository
       - uses: actions/checkout@v4
 
-      # Setup MSBuild path
       - name: Setup MSBuild path
         uses: microsoft/setup-msbuild@v1.0.2
 
-      # Setup NuGet
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
-      # Restore NuGet packages
       - name: Restore NuGet packages
         run: nuget restore asptest.sln
 
-      # Build project
       - name: Build project
         run: msbuild /nologo /verbosity:m /t:Build /p:Configuration=Release asptest.sln
 
-      # List files in the root directory of the repository (before publishing)
-      - name: List files in the root directory
+      # Sprawdź, czy folder 'published' już istnieje
+      - name: List files before publish
         run: |
-          echo "Listing files in the root directory before publishing:"
+          echo "Listing contents of the working directory before publish:"
           dir $GITHUB_WORKSPACE
 
-      # Publish to the "published" folder
-      - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir=$GITHUB_WORKSPACE/published asptest.sln
-
-      # List files after publish (check if "published" folder exists and contains files)
-      - name: List files after publish
+      # Upewnij się, że folder 'published' istnieje
+      - name: Create 'published' folder if not exists
         run: |
-          echo "Listing contents of the publish folder after publish:"
-          # Use proper syntax for PowerShell
-          if (Test-Path "$env:GITHUB_WORKSPACE\\published") { dir "$env:GITHUB_WORKSPACE\\published" } else { echo "No published folder found" }
+          if (!(Test-Path "$GITHUB_WORKSPACE/published")) {
+            New-Item -ItemType Directory -Path "$GITHUB_WORKSPACE/published"
+          }
 
-      # Upload the artifact from the "published" folder
+      # Publikacja aplikacji do folderu 'published'
+      - name: Publish to folder
+        run: msbuild /nologo /verbosity:m /t:Publish /p:Configuration=Release /p:PublishDir="$GITHUB_WORKSPACE/published" asptest.sln
+
+      # Debugowanie zawartości folderu 'published'
+      - name: Debug publish folder contents
+        run: |
+          echo "Contents of the 'published' folder:"
+          dir "$GITHUB_WORKSPACE/published"
+
+      # Uploadowanie artefaktu do Azure
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: ASP-app
-          path: $GITHUB_WORKSPACE/published/**
+          path: "$GITHUB_WORKSPACE/published/**"
 
   deploy:
     runs-on: windows-latest
@@ -61,28 +62,25 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write  # This is required for requesting the JWT
+      id-token: write
 
     steps:
-      # Download artifact from build job
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
 
-      # Login to Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_1AD799D24EF14E78B832AF717FA0D0DE }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_907954AC37BA43E2897A4861F921832C }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_03C79C0B94DB460FBDCBE9C45CB4C349 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
 
-      # Deploy to Azure Web App
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'newasptest'
           slot-name: 'Production'
-          package: $GITHUB_WORKSPACE/published
+          package: "$GITHUB_WORKSPACE/published"
